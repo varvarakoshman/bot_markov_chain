@@ -2,25 +2,30 @@ import re
 import random
 import collections
 
+
 def get_random_word(markov_model, given_words, dictionary):
     tokens = 0
     for key in dictionary.keys():
         if key in given_words:
-            tokens += dictionary.get(key)
             dictionary.update({(key, dictionary.get(key) * 10)})
+            tokens += dictionary.get(key)
         else:
             tokens += dictionary.get(key)
-    random_int = random.randint(0, tokens - 1)
+    return pick_random(tokens, dictionary)
+
+
+def pick_random(tokens, dictionary):
+    random_int = random.randint(1, tokens)
     index = 0
     for key in dictionary.keys():
         index += dictionary.get(key)
-        if (index > random_int):
+        if (index >= random_int):
             return key
 
 
 def generate_random_sentence(markov_model, given_phrase, length):
     given_words = given_phrase.replace(',', '').split()
-    dict_all_startwords = get_all_starts(given_phrase[len(given_phrase) - 1], markov_model)
+    dict_all_startwords = get_all_starts(given_words[-1], markov_model)
     given_words = given_words[:-1]
     first_word = get_random_word(markov_model, given_words, dict_all_startwords)
 
@@ -35,18 +40,10 @@ def generate_random_sentence(markov_model, given_phrase, length):
             temp.update({(key, 1)})
         for word in range(0, len(key)):
             if key[word] in given_words:
-                num_given_in_tuples += temp.get(key, 0) * 10
                 temp.update({(key, temp.get(key, 0) * 10)})
-    random_int = random.randint(0, num_given_in_tuples - 1)
-    index = 0
-    choosen_key = tuple()
-    for key in temp.keys():
-        index += temp.get(key)
-        if (index > random_int):
-            choosen_key = key
-            break
-
-    current_window = choosen_key
+                num_given_in_tuples += temp.get(key, 0)
+                
+    current_window = pick_random(num_given_in_tuples, temp)
     sentence = [current_window[0]]
     answer = ''
     flag = True
@@ -80,7 +77,7 @@ def generate_random_sentence(markov_model, given_phrase, length):
 
             if new_len < length:
                 answer += sentence_string
-            else:
+            elif len(answer) != 0:
                 flag = False
     return answer
 
@@ -115,7 +112,7 @@ def get_markov_model(order, data):
     return markov_model
 
 
-def clean_file(file):
+def pre_processing(file):
     data = open(file, 'r')
     lines = data.read()
     filtered = re.sub('[A-Z]+[A-Z]+[A-Z]*', '', lines)
@@ -135,8 +132,8 @@ def clean_file(file):
 
 
 def main():
-    filtered_list = clean_file('test2.txt')
-    markov_order = 2
+    filtered_list = pre_processing('test2.txt')
+    markov_order = 3
     markov_model = get_markov_model(markov_order, filtered_list)
     stop_word = 'end'
     print "Type 'end' to finish your conversation"
@@ -145,7 +142,7 @@ def main():
         if user == stop_word:
             break
         else:
-            bot = generate_random_sentence(markov_model, user, 90)
+            bot = generate_random_sentence(markov_model, user, 80)
             print bot
 
 
